@@ -27,7 +27,7 @@ The target is ([0,0]^T). At the end of an episode, the simulator adds a terminal
 
 ## Controller and training
 
-`controller.py` defines the shared two-layer GRU controller with 64 hidden units per layer; `train.py` imports it for training, and `evaluate.py` uses the same implementation. The recurrent linear maps use spectral normalization. A sigmoid maps the output into the configured action range ([-30,30]).
+`controller.py` defines the shared GRU cell and two-layer controller with 64 hidden units per layer; `train.py` re-exports both classes for compatibility with existing `train.GRUCell` and `train.GRUController` imports and old pickle references, while `evaluate.py` uses the shared implementation. The controller architecture and state-dict keys remain unchanged. The recurrent linear maps use spectral normalization. A sigmoid maps the output into the configured action range ([-30,30]).
 
 Current source defaults in `TrainingConfig`:
 
