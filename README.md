@@ -64,7 +64,7 @@ python train.py
 python evaluate.py
 ```
 
-Training creates `log/training_metrics.csv` and `log/full_trained_controller.pth`. Evaluation expects that checkpoint and writes evaluation outputs under `log/`. Run training before evaluation if the checkpoint is absent.
+Training creates `log/training_metrics.csv` and `log/full_trained_controller.pth`. Evaluation expects that checkpoint and writes `log/full_trained_controller_results.csv`. Run training before evaluation if the checkpoint is absent.
 
 ## Evaluation setup
 
