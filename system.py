@@ -67,14 +67,14 @@ class NCTSystemSimulator(nn.Module):
     def run_episode(self, controller, b_param_dist, num_steps, device, initial_states):
         """Runs a single simulation episode for training."""
         n_envs = b_param_dist.shape[0]
-        total_episode_reward = torch.zeros((n_envs, 1), device=device, requires_grad=True)
+        total_episode_reward = torch.zeros((n_envs, 1), device=device)
         current_h = None
         current_states = initial_states
         current_time_scalar = 0.0
         for step in range(num_steps):
             h0_for_controller = None
             if hasattr(controller, 'gru_cells') and current_h is not None:
-                h0_for_controller = [h_state.clone() for h_state in current_h]
+                h0_for_controller = current_h
 
             action, next_h = controller(current_states, h0=h0_for_controller)
 
@@ -82,7 +82,7 @@ class NCTSystemSimulator(nn.Module):
             current_states = next_states
             total_episode_reward = total_episode_reward + step_reward
             current_h = next_h
-            current_time_scalar += self.DT.item()
+            # _system_dynamics is time-independent, so advancing this value is unnecessary.
 
         total_episode_reward = total_episode_reward + self.calculate_truncated_reward(current_states)
         return total_episode_reward
