@@ -14,21 +14,14 @@ class NCTSystemSimulator(nn.Module):
 
     def __init__(self, dt, action_dim):
         super().__init__()
-        self.DT = torch.tensor(dt, dtype=torch.float32)
+        self.register_buffer('DT', torch.tensor(dt, dtype=torch.float32))
         self.action_dim = action_dim
         self.state_dim = 2
 
         self.REWARD_X1_PENALTY = 1.0
         self.REWARD_X2_PENALTY = 0.1
         self.REWARD_ACTION_PENALTY = 0.01
-        self.TARGET_STATE = torch.tensor([0.0, 0.0])
-
-    def to(self, device):
-        """Moves internal tensors to the specified device."""
-        self.device = device
-        self.TARGET_STATE = self.TARGET_STATE.to(device)
-        self.DT = self.DT.to(device)
-        return self
+        self.register_buffer('TARGET_STATE', torch.tensor([0.0, 0.0]))
 
     def _system_dynamics(self, state, u, b_param, t_current):
         """Calculates the system derivatives (x_dot)."""
@@ -70,7 +63,6 @@ class NCTSystemSimulator(nn.Module):
         total_episode_reward = torch.zeros((n_envs, 1), device=device)
         current_h = None
         current_states = initial_states
-        current_time_scalar = 0.0
         for step in range(num_steps):
             h0_for_controller = None
             if hasattr(controller, 'gru_cells') and current_h is not None:
@@ -78,7 +70,7 @@ class NCTSystemSimulator(nn.Module):
 
             action, next_h = controller(current_states, h0=h0_for_controller)
 
-            next_states, step_reward = self._step(current_states, action, b_param_dist, current_time_scalar)
+            next_states, step_reward = self._step(current_states, action, b_param_dist, 0.0)
             current_states = next_states
             total_episode_reward = total_episode_reward + step_reward
             current_h = next_h
@@ -117,7 +109,6 @@ def _run_evaluation_batch(
     h_batch = None
 
     total_rewards = torch.zeros(batch_size, 1, device=device)
-    current_time_batch = torch.zeros(batch_size, 1, device=device)
 
     clamp_low = action_low_limit
     clamp_high = action_high_limit
@@ -133,9 +124,8 @@ def _run_evaluation_batch(
             else:
                 raise ValueError("Only GRU evaluation supported in this simplified batch function.")
 
-            next_states, rewards = simulator._step(current_states, action, b_batch, current_time_batch)
+            next_states, rewards = simulator._step(current_states, action, b_batch, 0.0)
             total_rewards += rewards
             current_states = next_states
-            current_time_batch += simulator.DT
 
     return total_rewards
