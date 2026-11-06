@@ -1,67 +1,59 @@
 # MA-APG
 
-A PyTorch implementation of a GRU-based controller trained on the nonlinear control theory (NCT) system defined in `system.py`.
+A PyTorch GRU controller for the nonlinear control theory system implemented in system.py. The controller is trained through differentiable simulated episodes.
+
+[Project homepage](https://paoshou-china.github.io/MA-APG/) · [Browse source](https://github.com/PaoShou-China/MA-APG)
+
+![Recurrent controller and nonlinear system rollout](assets/hero.svg)
 
 ## Model and objective
 
-The simulator uses the state \(x=[x_1,x_2]^T\), with
+The simulator uses state x = [x1, x2]ᵀ and dynamics
 
-\[
-\dot{x}_1=x_2,\qquad
-\dot{x}_2=x_1+b u+\sin(b),
-\]
+```
+ẋ1 = x2
+ẋ2 = x1 + b u + sin(b)
+```
 
-where \(u\) is the scalar control input and \(b\) is a sampled system parameter. The implementation integrates the dynamics with a fourth-order Runge–Kutta step. The per-step reward penalizes position error, velocity error, and control effort:
+where u is scalar control and b is a sampled system parameter. Each integration step uses fourth-order Runge–Kutta (RK4). The reward penalizes position error, velocity error, and control effort:
 
-\[
-r_k=-\Delta t\left((x_{1,k}-x_1^*)^2+
-0.1(x_{2,k}-x_2^*)^2+0.01u_k^2\right),
-\]
+```
+rₖ = −Δt ((x1,ₖ − x1*)² + 0.1(x2,ₖ − x2*)² + 0.01uₖ²)
+```
 
-with target state \(x^*=[0,0]^T\), followed by a terminal state penalty. During training, the controller sees batches of sampled initial states and \(b\) values, and updates its parameters by gradient descent through the simulated episode.
+with target state [0, 0]ᵀ and an additional terminal-state penalty. Training differentiates through the simulated episode to update a two-layer GRU controller. Its default hidden width is 64, recurrent linear maps use spectral normalization, and actions are mapped to [-30, 30] by a sigmoid.
 
-The GRU controller in `train.py` uses two recurrent layers of width 64 by default, spectral normalization on the recurrent cell's linear maps, and a sigmoid action mapping to the configured range \([-30,30]\).
+## Repository map
+
+- system.py — nonlinear simulator, RK4 step, reward, sampled initial states, and evaluation helpers.
+- train.py — GRU controller, training configuration, training loop, and checkpoint output.
+- evaluate.py — fixed-scenario and parameter-sampling evaluation.
 
 ## Requirements
 
-Python 3.8 or newer and the following packages are used by the checked-in training/evaluation code:
-
-- PyTorch
-- NumPy
-- SciPy
-
-Install PyTorch using the command appropriate for your CPU or CUDA setup, then install the other dependencies:
+Python 3.8 or newer, PyTorch, NumPy, and SciPy. Install the PyTorch build for your CPU/CUDA setup; versions are not currently pinned.
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate       # Windows PowerShell: .venv\Scripts\Activate.ps1
+source .venv/bin/activate       # Windows PowerShell: .venv\\Scripts\\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install numpy scipy
 python -m pip install torch
 ```
 
-For a CUDA build, follow the official PyTorch selector and install the matching build instead of the generic final command. This repository does not yet lock dependency versions.
-
-## Train
+## Quick start
 
 From the repository root:
 
 ```bash
 python train.py
-```
-
-The current defaults are defined in `TrainingConfig` in `train.py`: seed 42, step size 0.02, 2,000 parallel simulated trajectories, 500 training episodes, and 15 integration steps per episode. Training chooses CUDA when available and otherwise uses CPU. It writes training metrics and `full_trained_controller.pth` under `log/`.
-
-## Evaluate
-
-After training:
-
-```bash
 python evaluate.py
 ```
 
-Evaluation loads `log/full_trained_controller.pth`, evaluates the configured fixed scenarios and robustness samples, and writes CSV results under the configured log directory. Check `EvaluationConfig` in `evaluate.py` before changing the evaluation scenarios or horizon.
+Training writes metrics and full_trained_controller.pth under log/. Evaluation loads log/full_trained_controller.pth and writes CSV results in the configured log directory. If training has not completed, run training first.
 
-## Reproducibility
+## Current defaults and reproduction
 
-Training and evaluation set random seeds in their entry points, but GPU operations may not be fully deterministic across devices and PyTorch versions. Keep the source revision, package versions, seed, and configuration with any reported result. Training/evaluation parameters are currently edited in Python source rather than through a CLI.
+TrainingConfig in train.py sets seed 42, time step 0.02, 2,000 parallel simulated trajectories, 500 training episodes, and 15 integration steps per episode. EvaluationConfig in evaluate.py sets its own seed, fixed initial conditions and b values, and random robustness samples. Training and evaluation options are currently edited in Python source; there is no CLI.
+
+Record the source revision, dependency versions, seed, and configuration with reported results. GPU operations may vary across devices and PyTorch versions. The project does not currently include a verified dependency lock or cross-platform version matrix.
