@@ -10,7 +10,7 @@ import random
 
 # Import necessary components
 from system import NCTSystemSimulator, _run_evaluation_batch
-from train import GRUController as GRUController_Full_SN
+from controller import GRUController as GRUController_Full_SN
 
 
 # ==============================================================================
@@ -67,7 +67,6 @@ def simulate_single_reward_gru(
     b_param_batch = b_param.unsqueeze(0).to(device)
     total_reward = torch.tensor([0.0], device=device)
     current_h = None
-    current_time = 0.0
 
     with torch.no_grad():
         for i in range(num_steps):
@@ -76,12 +75,10 @@ def simulate_single_reward_gru(
             if action_low_limit is not None and action_high_limit is not None:
                 action = torch.clamp(action, action_low_limit, action_high_limit)
 
-            current_time_batch_for_step = torch.full((current_state.shape[0], 1), current_time, device=device)
-            next_state, reward_step = simulator._step(current_state, action, b_param_batch, current_time_batch_for_step)
+            next_state, reward_step = simulator._step(current_state, action, b_param_batch, 0.0)
 
             total_reward += reward_step.squeeze(0)
             current_state = next_state
-            current_time += simulator.DT.item()
 
     return total_reward.cpu()
 
