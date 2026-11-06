@@ -2,7 +2,7 @@
 
 A PyTorch GRU controller for the nonlinear control theory system implemented in system.py. The controller is trained through differentiable simulated episodes.
 
-[Project homepage](https://paoshou-china.github.io/MA-APG/) · [Browse source](https://github.com/PaoShou-China/MA-APG)
+[Project homepage](https://paoshou-china.github.io/MA-APG/) *(deployed by the repository Pages workflow)* · [Browse source](https://github.com/PaoShou-China/MA-APG)
 
 ![Recurrent controller and nonlinear system rollout](assets/hero.svg)
 
