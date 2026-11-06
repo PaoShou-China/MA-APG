@@ -62,7 +62,9 @@ class GRUController(nn.Module):
         if h0 is None:
             h0 = [torch.zeros(batch_size, self.hidden_size, device=x.device) for _ in range(self.num_layers)]
         else:
-            h0 = [h.clone().to(x.device) for h in h0]
+            # The cell updates a new list and never mutates hidden-state tensors in place.
+            # to() is a no-op for the normal same-device rollout and remains differentiable if needed.
+            h0 = [h.to(x.device) for h in h0]
 
         current_h = h0
         input_to_gru_layer = x
