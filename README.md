@@ -1,41 +1,55 @@
 # MA-APG
 
-A PyTorch GRU controller for the nonlinear control theory system implemented in system.py. The controller is trained through differentiable simulated episodes.
+A PyTorch implementation of a recurrent controller for a nonlinear two-state control system. The controller is trained by differentiating through RK4 simulated episodes.
 
-[Project homepage](https://paoshou-china.github.io/MA-APG/) *(deployed by the repository Pages workflow)* · [Browse source](https://github.com/PaoShou-China/MA-APG)
+[Project homepage](https://paoshou-china.github.io/MA-APG/) · [Source repository](https://github.com/PaoShou-China/MA-APG)
 
-![Recurrent controller and nonlinear system rollout](assets/hero.svg)
+![Code-grounded schematic of the GRU policy, nonlinear system rollout, and episode reward](assets/hero.svg)
 
-## Model and objective
+## Model
 
-The simulator uses state x = [x1, x2]ᵀ and dynamics
+The state is (x=[x_1,x_2]^T), with dynamics
 
-```
-ẋ1 = x2
-ẋ2 = x1 + b u + sin(b)
-```
-
-where u is scalar control and b is a sampled system parameter. Each integration step uses fourth-order Runge–Kutta (RK4). The reward penalizes position error, velocity error, and control effort:
-
-```
-rₖ = −Δt ((x1,ₖ − x1*)² + 0.1(x2,ₖ − x2*)² + 0.01uₖ²)
+```text
+ẋ₁ = x₂
+ẋ₂ = x₁ + b u + sin(b)
 ```
 
-with target state [0, 0]ᵀ and an additional terminal-state penalty. Training differentiates through the simulated episode to update a two-layer GRU controller. Its default hidden width is 64, recurrent linear maps use spectral normalization, and actions are mapped to [-30, 30] by a sigmoid.
+Here (u) is the scalar action and (b) is sampled per simulated environment. Each integration step uses fourth-order Runge–Kutta (RK4).
 
-## Repository map
+The per-step reward penalizes the next state and action:
 
-- system.py — nonlinear simulator, RK4 step, reward, sampled initial states, and evaluation helpers.
-- train.py — GRU controller, training configuration, training loop, and checkpoint output.
-- evaluate.py — fixed-scenario and parameter-sampling evaluation.
+```text
+rₖ = −Δt [x₁,ₖ₊₁² + 0.1 x₂,ₖ₊₁² + 0.01 uₖ²]
+```
 
-## Requirements
+The target is ([0,0]^T). At the end of an episode, the simulator adds a terminal state penalty with a factor of 10. Training minimizes the negative mean episode reward.
 
-Python 3.8 or newer, PyTorch, NumPy, and SciPy. Install the PyTorch build for your CPU/CUDA setup; versions are not currently pinned.
+## Controller and training
+
+`train.py` defines a two-layer GRU controller with 64 hidden units per layer. The recurrent linear maps use spectral normalization. A sigmoid maps the output into the configured action range ([-30,30]).
+
+Current source defaults in `TrainingConfig`:
+
+- Time step: 0.02
+- Parallel environments per episode: 2,000
+- Episodes: 500
+- Integration steps per episode: 15
+- Sampled system parameter: (b in [0.1,10])
+- Optimizer: Adam, learning rate 0.001
+
+Training differentiates the accumulated reward through the simulator rollout and clips the controller gradient norm to 5.
+
+## Installation
+
+Use Python 3.8 or newer. Install the PyTorch build appropriate for your CPU or CUDA environment; the repository does not pin dependency versions.
 
 ```bash
+git clone https://github.com/PaoShou-China/MA-APG.git
+cd MA-APG
 python -m venv .venv
-source .venv/bin/activate       # Windows PowerShell: .venv\\Scripts\\Activate.ps1
+source .venv/bin/activate
+# Windows PowerShell: .venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 python -m pip install numpy scipy
 python -m pip install torch
@@ -43,17 +57,33 @@ python -m pip install torch
 
 ## Quick start
 
-From the repository root:
+Run from the repository root:
 
 ```bash
 python train.py
 python evaluate.py
 ```
 
-Training writes metrics and full_trained_controller.pth under log/. Evaluation loads log/full_trained_controller.pth and writes CSV results in the configured log directory. If training has not completed, run training first.
+Training creates `log/training_metrics.csv` and `log/full_trained_controller.pth`. Evaluation expects that checkpoint and writes evaluation outputs under `log/`. Run training before evaluation if the checkpoint is absent.
 
-## Current defaults and reproduction
+## Evaluation setup
 
-TrainingConfig in train.py sets seed 42, time step 0.02, 2,000 parallel simulated trajectories, 500 training episodes, and 15 integration steps per episode. EvaluationConfig in evaluate.py sets its own seed, fixed initial conditions and b values, and random robustness samples. Training and evaluation options are currently edited in Python source; there is no CLI.
+`evaluate.py` runs 500-step rollouts. Its fixed cases use six configured initial states and (b=0.1,1,10); it also samples 50 parameter cases over the configured interval ([0.1,10]) for robustness plots. Evaluation settings are source-configured in `EvaluationConfig`; there is no command-line interface.
 
-Record the source revision, dependency versions, seed, and configuration with reported results. GPU operations may vary across devices and PyTorch versions. The project does not currently include a verified dependency lock or cross-platform version matrix.
+## Repository map
+
+| File | Purpose |
+| --- | --- |
+| `system.py` | Nonlinear dynamics, RK4 integration, reward, initial-state sampling, and batched evaluation. |
+| `train.py` | GRU controller, training defaults, optimization loop, and checkpoint writing. |
+| `evaluate.py` | Fixed-scenario and parameter-sampling evaluation. |
+| `index.html` | Static project homepage. |
+| `assets/hero.svg` | Method schematic derived from the source implementation. |
+
+## Reproduction notes
+
+The training configuration declares a `seed` field, but the current training entry point does not apply it to the random generators. For reproducible experiments, set and record explicit Python, NumPy, and PyTorch seeds, the source revision, dependency versions, device, and configuration. GPU results may vary across devices and library versions. No verified dependency lock or cross-platform test matrix is included.
+
+## Dependencies and license
+
+Install NumPy, SciPy, and PyTorch as described above. See [requirements.txt](requirements.txt) for the unpinned dependency list and [LICENSE](LICENSE) for license terms.
