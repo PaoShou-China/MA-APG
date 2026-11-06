@@ -145,13 +145,14 @@ def evaluate_single_model(
 # ==============================================================================
 
 if __name__ == "__main__":
-    overall_seed = 42
-    torch.manual_seed(overall_seed);
-    np.random.seed(overall_seed);
-    random.seed(overall_seed)
+    cfg = EvaluationConfig()
+    torch.manual_seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    random.seed(cfg.seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(cfg.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    cfg = EvaluationConfig()
     os.makedirs(cfg.log_base_dir, exist_ok=True)
 
     nn_models_to_evaluate = [{"name": "GRU Controller", "controller_class": GRUController_Full_SN,
