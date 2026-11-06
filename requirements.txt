@@ -1,0 +1,6 @@
+# Install the PyTorch build that matches your CPU/CUDA environment separately.
+# Versions are intentionally not pinned; this repository has not documented a
+# verified cross-platform version matrix.
+numpy
+scipy
+torch
