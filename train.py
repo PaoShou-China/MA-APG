@@ -9,7 +9,7 @@ import os
 import datetime
 
 
-from controller import GRUController
+from controller import GRUCell, GRUController
 
 
 # --- Training Loop ---
