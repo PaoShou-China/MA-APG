@@ -27,7 +27,7 @@ The target is ([0,0]^T). At the end of an episode, the simulator adds a terminal
 
 ## Controller and training
 
-`train.py` defines a two-layer GRU controller with 64 hidden units per layer. The recurrent linear maps use spectral normalization. A sigmoid maps the output into the configured action range ([-30,30]).
+`controller.py` defines the shared two-layer GRU controller with 64 hidden units per layer; `train.py` imports it for training, and `evaluate.py` uses the same implementation. The recurrent linear maps use spectral normalization. A sigmoid maps the output into the configured action range ([-30,30]).
 
 Current source defaults in `TrainingConfig`:
 
@@ -38,7 +38,7 @@ Current source defaults in `TrainingConfig`:
 - Sampled system parameter: (b in [0.1,10])
 - Optimizer: Adam, learning rate 0.001
 
-Training differentiates the accumulated reward through the simulator rollout and clips the controller gradient norm to 5.
+Training applies the configured seed (42 by default) to Python, NumPy, and PyTorch, differentiates the accumulated reward through the simulator rollout, and clips the controller gradient norm to 5.
 
 ## Installation
 
@@ -75,14 +75,15 @@ Training creates `log/training_metrics.csv` and `log/full_trained_controller.pth
 | File | Purpose |
 | --- | --- |
 | `system.py` | Nonlinear dynamics, RK4 integration, reward, initial-state sampling, and batched evaluation. |
-| `train.py` | GRU controller, training defaults, optimization loop, and checkpoint writing. |
+| `controller.py` | Shared GRU cell and controller implementation used by training and evaluation. |
+| `train.py` | Training defaults, optimization loop, and checkpoint writing. |
 | `evaluate.py` | Fixed-scenario and parameter-sampling evaluation. |
 | `index.html` | Static project homepage. |
 | `assets/hero.svg` | Method schematic derived from the source implementation. |
 
 ## Reproduction notes
 
-The training configuration declares a `seed` field, but the current training entry point does not apply it to the random generators. For reproducible experiments, set and record explicit Python, NumPy, and PyTorch seeds, the source revision, dependency versions, device, and configuration. GPU results may vary across devices and library versions. No verified dependency lock or cross-platform test matrix is included.
+Training and evaluation apply their configured seed (42 by default) to Python, NumPy, and PyTorch. For reproducible experiments, record the source revision, dependency versions, device, and configuration. GPU results may vary across devices and library versions. GPU results may vary across devices and library versions. No verified dependency lock or cross-platform test matrix is included.
 
 ## Dependencies and license
 
